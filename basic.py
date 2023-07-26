@@ -15,7 +15,7 @@ class Error:
         self.details = details
     def as_string(self):
         result =f'{self.error_name}: {self.details}'
-        result += f'File {self.pos_start.fn}, line {self.pos_start.ln + 1}'
+        result += f'File {self.pos_start.file_name}, line {self.pos_start.line + 1}'
         return result
     
 class IllegalCharError(Error):
@@ -23,26 +23,29 @@ class IllegalCharError(Error):
         super().__init__(pos_start, pos_end, 'Illegal Character',details)
 
 ###################
-#POSITION
+#POSITION- keeps track of the line number column number and index
 ###################
 class Position:
-    def __init__(self, idx, ln, col, fn, ftxt):
-        self.idx= idx
-        self.ln= ln
+    def __init__(self, index, line, col, file_name, file_text):
+        self.index= index
+        self.line= line
         self.col= col
-        self.fn= fn
-        self.ftxt=ftxt
+        self.file_name = file_name
+        self.file_text = file_text
+
     def advance(self, current_char):
-        self.idx += 1
+        self.index += 1
         self.col += 1
 
         if current_char == '\n':
-            self.ln += 1
+            self.line += 1
             self.col = 0
         return self
     
+# Create a copy of the current position
+    
     def copy(self):
-        return Position(self.idx, self.ln, self.col, self.fn, self.ftxt)
+        return Position(self.index, self.line, self.col, self.file_name, self.file_text)
 
 ########
 # TOKENS
@@ -70,28 +73,32 @@ class Token:
 # Representation method makes it look nice when printed on to the terminal window
 # if the token has a value it will print the type : and the value
     def __repr__(self):
-        if self.value: return f'{self.type}:{self.value}'
+        if self.value: 
+            return f'{self.type}:{self.value}'
         return f'{self.type}'
     
 ########################
 # LEXER 
 ########################
 class Lexer:
-    def __init__(self, fn, text):
-        self.fn= fn
+    def __init__(self, file_name, text):
+        self.file_name= file_name
         self.text=text
-        self.pos= Position(-1, 0, -1, fn, text) #start with -1 cause the advance function will immediately change it to 0
+        self.pos= Position(-1, 0, -1, file_name, text) #start with -1 cause the advance function will immediately change it to 0
         self.current_char= None
         self.advance()
 
 # define an advance message that will advance to the next character in the text
     def advance(self):
         self.pos.advance(self.current_char)
-        self.current_char = self.text[self.pos.idx] if self.pos.idx < len(self.text) else None
+        if self.pos.index < len(self.text):
+            self.current_char = self.text[self.pos.index] 
+        else:
+            self.current_char = None
 
 # create a make_tokens method
     def make_tokens(self):
-        tokens=[]
+        tokens= []
 
         while self.current_char != None:
             if self.current_char in ' \t':
@@ -131,7 +138,8 @@ class Lexer:
 
         while self.current_char != None and self.current_char in DIGITS + '.':
             if self.current_char == '.':
-                if dot_count== 1: break
+                if dot_count == 1:
+                    break
                 dot_count +=1
                 num_str += '.'
             else:
@@ -139,16 +147,17 @@ class Lexer:
             self.advance()
             
 
-            if dot_count == 0:
-                return Token(TT_INT, int(num_str))
-            else:
-                return Token(TT_FLOAT, float(num_str))
+        if dot_count == 0:
+            return Token(TT_INT, int(num_str))
+        else:
+            return Token(TT_FLOAT, float(num_str))
+            
 
 ######################
 # RUN
 ######################
-def run(fn, text):
-    lexer = Lexer(fn,text)
+def run(file_name, text):
+    lexer = Lexer(file_name,text)
     tokens,error=lexer.make_tokens()
 
     return tokens, error

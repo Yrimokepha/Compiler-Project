@@ -1,9 +1,11 @@
-import basic2
+import basic
 
 while True:
     text= input( 'basic >' )
-    result,error = basic2.run('<stdin>', text)
+    result,error = basic.run('<stdin>', text)
 
-    if error: print(error.as_string())
-    else: print(result)
+    if error:
+        print(error.as_string())
+    else:
+        print(result)
     
